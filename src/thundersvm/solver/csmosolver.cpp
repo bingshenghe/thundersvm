@@ -9,6 +9,7 @@ using namespace svm_kernel;
 
 void CSMOSolver::solve(const KernelMatrix &k_mat, const SyncData<int> &y, SyncData<float_type> &alpha, float_type &rho,
                        SyncData<float_type> &f_val, float_type eps, float_type Cp, float_type Cn, int ws_size) const {
+    TIMED_SCOPE(timerObj, "solve");
     uint n_instances = k_mat.n_instances();
     uint q = ws_size / 2;
 
@@ -48,7 +49,10 @@ void CSMOSolver::solve(const KernelMatrix &k_mat, const SyncData<int> &y, SyncDa
         //select working set
         f_idx2sort.copy_from(f_idx);
         f_val2sort.copy_from(f_val);
-        sort_f(f_val2sort, f_idx2sort);
+        {
+            TIMED_SCOPE(timerObj, "select_working_set");
+            sort_f(f_val2sort, f_idx2sort);
+        }
         vector<int> ws_indicator(n_instances, 0);
         if (0 == iter) {
             select_working_set(ws_indicator, f_idx2sort, y, alpha, Cp, Cn, working_set);
@@ -66,10 +70,13 @@ void CSMOSolver::solve(const KernelMatrix &k_mat, const SyncData<int> &y, SyncDa
         smo_kernel(y, f_val, alpha, alpha_diff, working_set, Cp, Cn, k_mat_rows, k_mat.diag(), n_instances, eps, diff,
                    max_iter);
         //update f
-        update_f(f_val, alpha_diff, k_mat_rows, k_mat.n_instances());
+        {
+            TIMED_SCOPE(timerObj, "update f");
+            update_f(f_val, alpha_diff, k_mat_rows, k_mat.n_instances());
+        }
         if (iter % 10 == 0) {
-            printf(".");
-            std::cout.flush();
+//            printf(".");
+//            std::cout.flush();
         }
         if (diff[0] < eps) {
             rho = calculate_rho(f_val, y, alpha, Cp, Cn);
@@ -82,6 +89,7 @@ void CSMOSolver::solve(const KernelMatrix &k_mat, const SyncData<int> &y, SyncDa
 void CSMOSolver::select_working_set(vector<int> &ws_indicator, const SyncData<int> &f_idx2sort, const SyncData<int> &y,
                                     const SyncData<float_type> &alpha, float_type Cp, float_type Cn,
                                     SyncData<int> &working_set) const {
+    TIMED_SCOPE(timerObj, "select_working_set");
     int n_instances = ws_indicator.size();
     int p_left = 0;
     int p_right = n_instances - 1;
@@ -123,6 +131,7 @@ float_type
 CSMOSolver::calculate_rho(const SyncData<float_type> &f_val, const SyncData<int> &y, SyncData<float_type> &alpha,
                           float_type Cp,
                           float_type Cn) const {
+    TIMED_SCOPE(timerObj, "calculate rho");
     int n_free = 0;
     float_type sum_free = 0;
     float_type up_value = INFINITY;
@@ -140,6 +149,7 @@ CSMOSolver::calculate_rho(const SyncData<float_type> &f_val, const SyncData<int>
 
 void CSMOSolver::init_f(const SyncData<float_type> &alpha, const SyncData<int> &y, const KernelMatrix &k_mat,
                         SyncData<float_type> &f_val) const {
+    TIMED_SCOPE(timerObj, "init_f");
     //todo auto set batch size
     int batch_size = 100;
     vector<int> idx_vec;
@@ -170,6 +180,8 @@ CSMOSolver::smo_kernel(const SyncData<int> &y, SyncData<float_type> &f_val, Sync
                        const SyncData<float_type> &k_mat_rows,
                        const SyncData<float_type> &k_mat_diag, int row_len, float_type eps, SyncData<float_type> &diff,
                        int max_iter) const {
+    TIMED_SCOPE(timerObj, "local_smo");
     c_smo_solve(y, f_val, alpha, alpha_diff, working_set, Cp, Cn, k_mat_rows, k_mat_diag, row_len, eps, diff, max_iter);
+    cudaDeviceSynchronize();
 }
 

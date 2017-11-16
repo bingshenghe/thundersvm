@@ -38,6 +38,7 @@ void SVC::model_setup(const DataSet &dataset, SvmParam &param) {
 }
 
 void SVC::train(const DataSet &dataset, SvmParam param) {
+    TIMED_SCOPE(timerObj, "train");
     DataSet dataset_ = dataset;
     dataset_.group_classes();
     model_setup(dataset_, param);
@@ -110,6 +111,7 @@ void SVC::train(const DataSet &dataset, SvmParam param) {
 }
 
 void SVC::train_binary(const DataSet &dataset, int i, int j, SyncData<float_type> &alpha, float_type &rho) {
+    TIMED_SCOPE(timerObj, "train_binary");
     DataSet::node2d ins = dataset.instances(i, j);//get instances of class i and j
     SyncData<int> y(ins.size());
     alpha.resize(ins.size());

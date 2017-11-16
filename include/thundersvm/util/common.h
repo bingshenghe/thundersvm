@@ -37,6 +37,7 @@ const int NUM_BLOCKS = 32 * 56;
   } while (0)
 #define SAFE_KERNEL_LAUNCH(kernel_name, ...)\
     kernel_name<<<NUM_BLOCKS,BLOCK_SIZE>>>(__VA_ARGS__);\
+    cudaDeviceSynchronize();\
     CUDA_CHECK(cudaPeekAtLastError())
 #define KERNEL_LOOP(i, n) \
   for (int i = blockIdx.x * blockDim.x + threadIdx.x; \

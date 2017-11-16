@@ -15,6 +15,7 @@
 INITIALIZE_EASYLOGGINGPP
 
 int main(int argc, char **argv) {
+    el::Loggers::addFlag(el::LoggingFlag::FixedTimeFormat);
     CMDParser parser;
     parser.parse_command_line(argc, argv);
 
@@ -67,29 +68,29 @@ int main(int argc, char **argv) {
     } else {
         model->train(train_dataset, parser.param_cmd);
         model->save_to_file(parser.model_file_name);
-    	predict_y = model->predict(train_dataset.instances(), 10000);
+//    	predict_y = model->predict(train_dataset.instances(), 10000);
 		test_y = train_dataset.y();
     }
 
     //perform svm testing
-    Metric *metric = nullptr;
-    switch (parser.param_cmd.svm_type) {
-        case SvmParam::C_SVC:
-        case SvmParam::NU_SVC: {
-            metric = new Accuracy();
-            break;
-        }
-        case SvmParam::EPSILON_SVR:
-        case SvmParam::NU_SVR: {
-            metric = new MSE();
-            break;
-        }
-        case SvmParam::ONE_CLASS: {
-        }
-    }
-    if (metric) {
-        LOG(INFO) << metric->name() << " = " << metric->score(predict_y, test_y); 
-    }
-    return 0;
+//    Metric *metric = nullptr;
+//    switch (parser.param_cmd.svm_type) {
+//        case SvmParam::C_SVC:
+//        case SvmParam::NU_SVC: {
+//            metric = new Accuracy();
+//            break;
+//        }
+//        case SvmParam::EPSILON_SVR:
+//        case SvmParam::NU_SVR: {
+//            metric = new MSE();
+//            break;
+//        }
+//        case SvmParam::ONE_CLASS: {
+//        }
+//    }
+//    if (metric) {
+//        LOG(INFO) << metric->name() << " = " << metric->score(predict_y, test_y);
+//    }
+//    return 0;
 }
 

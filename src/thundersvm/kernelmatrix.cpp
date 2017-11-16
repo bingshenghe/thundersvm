@@ -70,8 +70,10 @@ KernelMatrix::KernelMatrix(const DataSet::node2d &instances, SvmParam param) {
 
 void KernelMatrix::get_rows(const SyncData<int> &idx,
                             SyncData<float_type> &kernel_rows) const {//compute multiple rows of kernel matrix according to idx
+    TIMED_SCOPE(timerObj, "calculate_kernels");
     CHECK_GE(kernel_rows.size(), idx.size() * n_instances_) << "kernel_rows memory is too small";
     get_dot_product(idx, kernel_rows);
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "get dot product");
     switch (param.kernel_type) {
         case SvmParam::RBF:
             RBF_kernel(idx, self_dot_, kernel_rows, idx.size(), n_instances_, param.gamma);
@@ -86,12 +88,15 @@ void KernelMatrix::get_rows(const SyncData<int> &idx,
             sigmoid_kernel(kernel_rows, param.gamma, param.coef0, kernel_rows.size());
             break;
     }
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "transform kernels");
 }
 
 void KernelMatrix::get_rows(const DataSet::node2d &instances,
                             SyncData<float_type> &kernel_rows) const {//compute the whole (sub-) kernel matrix of the given instances.
+    TIMED_SCOPE(timerObj, "calculate_kernels");
     CHECK_GE(kernel_rows.size(), instances.size() * n_instances_) << "kernel_rows memory is too small";
     get_dot_product(instances, kernel_rows);
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "get dot product");
 
     //compute self dot
     //TODO use thrust
@@ -103,6 +108,7 @@ void KernelMatrix::get_rows(const DataSet::node2d &instances,
         }
         self_dot[i] = sum;
     }
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "self dot");
     switch (param.kernel_type) {
         case SvmParam::RBF:
             RBF_kernel(self_dot, self_dot_, kernel_rows, instances.size(), n_instances_, param.gamma);
@@ -117,6 +123,7 @@ void KernelMatrix::get_rows(const DataSet::node2d &instances,
             sigmoid_kernel(kernel_rows, param.gamma, param.coef0, kernel_rows.size());
             break;
     }
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "transform kernels");
 }
 
 const SyncData<float_type> &KernelMatrix::diag() const {
@@ -127,16 +134,21 @@ const SyncData<float_type> &KernelMatrix::diag() const {
 void KernelMatrix::dns_csr_mul(const SyncData<float_type> &dense_mat, int n_rows, SyncData<float_type> &result) const {
     CHECK_EQ(dense_mat.size(), n_rows * n_features_) << "dense matrix features doesn't match";
     svm_kernel::dns_csr_mul(n_instances_, n_rows, n_features_, dense_mat, val_, row_ptr_, col_ind_, nnz_, result);
+    cudaDeviceSynchronize();
 }
 
 void KernelMatrix::get_dot_product(const SyncData<int> &idx, SyncData<float_type> &dot_product) const {
+    TIMED_SCOPE(timerObj, "get_dot_product");
     SyncData<float_type> data_rows(idx.size() * n_features_);
     data_rows.mem_set(0);
     get_working_set_ins(val_, col_ind_, row_ptr_, idx, data_rows, idx.size());
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "get working set");
     dns_csr_mul(data_rows, idx.size(), dot_product);
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "dns csr mul");
 }
 
 void KernelMatrix::get_dot_product(const DataSet::node2d &instances, SyncData<float_type> &dot_product) const {
+    TIMED_SCOPE(timerObj, "get_dot_product");
     SyncData<float_type> dense_ins(instances.size() * n_features_);
     dense_ins.mem_set(0);
     for (int i = 0; i < instances.size(); ++i) {
@@ -148,7 +160,9 @@ void KernelMatrix::get_dot_product(const DataSet::node2d &instances, SyncData<fl
             sum += instances[i][j].value * instances[i][j].value;
         }
     }
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "get working set");
     dns_csr_mul(dense_ins, instances.size(), dot_product);
+    PERFORMANCE_CHECKPOINT_WITH_ID(timerObj, "dns csr mul");
 }
 
 
