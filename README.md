@@ -13,6 +13,16 @@
 - add scikit-learn interface, see [here](https://github.com/zeyiwen/thundersvm/tree/master/python)
 - add quiet mode (-q)
 - pre-built binaries and DLL for Windows x64 on CPUs are [avaliable](https://ci.appveyor.com/project/shijiashuai/thundersvm/branch/master/artifacts)
+
+## Call for collaborations 
+We are looking for collaborations and contributions on some future features of ThunderSVM
+- handling various sparse formats 
+- ThunderSVM on other architectures such as Arm and FPGAs.
+- An OpenCL version of ThunderSVM
+- Distributed version of ThunderSVM
+
+
+
 ## Overview
 The mission of ThunderSVM is to help users easily and efficiently apply SVMs to solve problems. ThunderSVM exploits GPUs and multi-core CPUs to achieve high efficiency. Key features of ThunderSVM are as follows.
 * Support all functionalities of LibSVM such as one-class SVMs, SVC, SVR and probabilistic SVMs.
